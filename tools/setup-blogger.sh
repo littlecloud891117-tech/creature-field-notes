@@ -229,7 +229,7 @@ fi
 stage "Enable Blogger email publishing"
 say "This method uses Blogger's official email publishing feature. It does not use Google Cloud or OAuth."
 open_url "https://www.blogger.com/blog/settings/$BLOGGER_BLOG_ID"
-step "Find the Email section. Find 'Post using email'."
+step "Find the '電子郵件' section. Select '透過電子郵件張貼文章' ('Post using email')."
 SECRET_WORD=$(python -c 'import secrets; print(secrets.token_hex(12))')
 say "Use this generated secret word: $SECRET_WORD"
 step "Enter the secret word after your Blogger username."
