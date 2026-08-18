@@ -228,18 +228,28 @@ fi
 
 stage "Enable Blogger email publishing"
 say "This method uses Blogger's official email publishing feature. It does not use Google Cloud or OAuth."
-open_url "https://www.blogger.com/blog/settings/$BLOGGER_BLOG_ID"
-step "Find the '電子郵件' section. Select '透過電子郵件張貼文章' ('Post using email')."
-SECRET_WORD=$(python -c 'import secrets; print(secrets.token_hex(10))')
-say "Use this generated secret word: $SECRET_WORD"
-step "Enter the secret word after your Blogger username."
-step "Select 'Publish email immediately'. Save the setting."
-ask_secret BLOGGER_POST_EMAIL "Right-click to paste the full @blogger.com posting address:"
-if [[ ! "$BLOGGER_POST_EMAIL" =~ ^[^[:space:]@]+\.[^[:space:]@]+@blogger\.com$ ]]; then
-  warn "The posting address must end with @blogger.com and contain the secret word."
-  exit 1
+BLOGGER_POST_EMAIL=$(_existing BLOGGER_POST_EMAIL || true)
+if [[ "$BLOGGER_POST_EMAIL" =~ ^[^[:space:]@]+\.[^[:space:]@]+@blogger\.com$ ]]; then
+  say "Using the saved Blogger posting address."
+else
+  SECRET_WORD=$(_existing BLOGGER_POST_SECRET || true)
+  if [[ ! "$SECRET_WORD" =~ ^[a-zA-Z0-9_-]{4,20}$ ]]; then
+    SECRET_WORD=$(python -c 'import secrets; print(secrets.token_hex(10))')
+    write_env BLOGGER_POST_SECRET "$SECRET_WORD"
+  fi
+  open_url "https://www.blogger.com/blog/settings/$BLOGGER_BLOG_ID"
+  step "Find the '電子郵件' section. Select '透過電子郵件張貼文章' ('Post using email')."
+  say "Use this saved secret word: $SECRET_WORD"
+  step "Enter the secret word after your Blogger username."
+  step "Select 'Publish email immediately'. Save the setting."
+  ask BLOGGER_POST_USERNAME "Enter only the fixed username shown before the dot:"
+  if [[ ! "$BLOGGER_POST_USERNAME" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+    warn "The username contains an unsupported character."
+    exit 1
+  fi
+  BLOGGER_POST_EMAIL="${BLOGGER_POST_USERNAME}.${SECRET_WORD}@blogger.com"
+  write_env BLOGGER_POST_EMAIL "$BLOGGER_POST_EMAIL"
 fi
-write_env BLOGGER_POST_EMAIL "$BLOGGER_POST_EMAIL"
 
 stage "Create the Gmail App Password"
 say "The App Password lets the local publisher use Gmail SMTP. It is not your Google account password."
