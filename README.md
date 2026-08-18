@@ -14,7 +14,13 @@ python tools\check_site.py
 
 ## 首次設定 Blogger
 
-使用 Git Bash 執行：
+在 Windows 執行下列檔案。即使設定失敗，視窗也會保留錯誤訊息。
+
+```powershell
+tools\setup-blogger.cmd
+```
+
+也可以使用 Git Bash：
 
 ```bash
 ./tools/setup-blogger.sh
