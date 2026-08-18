@@ -257,7 +257,12 @@ open_url "https://myaccount.google.com/apppasswords"
 step "Sign in with the Gmail account that owns the Blogger site."
 step "If Google requests 2-Step Verification, enable it before you continue."
 step "Create an App Password named 'Creature Field Notes Publisher'."
-ask BLOGGER_SMTP_USER "Enter the full Gmail address:"
+BLOGGER_SMTP_USER=$(_existing BLOGGER_SMTP_USER || true)
+if [[ "$BLOGGER_SMTP_USER" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]; then
+  say "Using the saved Gmail address."
+else
+  ask BLOGGER_SMTP_USER "Type the full Gmail address. Do not press Ctrl+V:"
+fi
 ask_secret BLOGGER_SMTP_APP_PASSWORD "Right-click to paste the 16-character App Password:"
 NORMALIZED_APP_PASSWORD="${BLOGGER_SMTP_APP_PASSWORD// /}"
 if [[ ! "$BLOGGER_SMTP_USER" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]; then
