@@ -259,16 +259,17 @@ step "If Google requests 2-Step Verification, enable it before you continue."
 step "Create an App Password named 'Creature Field Notes Publisher'."
 ask BLOGGER_SMTP_USER "Enter the full Gmail address:"
 ask_secret BLOGGER_SMTP_APP_PASSWORD "Right-click to paste the 16-character App Password:"
+NORMALIZED_APP_PASSWORD="${BLOGGER_SMTP_APP_PASSWORD// /}"
 if [[ ! "$BLOGGER_SMTP_USER" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]; then
   warn "The Gmail address is not valid."
   exit 1
 fi
-if [[ ${#BLOGGER_SMTP_APP_PASSWORD// /} -ne 16 ]]; then
+if [[ ${#NORMALIZED_APP_PASSWORD} -ne 16 ]]; then
   warn "The App Password must contain 16 characters."
   exit 1
 fi
 write_env BLOGGER_SMTP_USER "$BLOGGER_SMTP_USER"
-write_env BLOGGER_SMTP_APP_PASSWORD "${BLOGGER_SMTP_APP_PASSWORD// /}"
+write_env BLOGGER_SMTP_APP_PASSWORD "$NORMALIZED_APP_PASSWORD"
 python "$SITE_ROOT/tools/blogger_email_publish.py" --check-auth
 
 stage "Add policy pages and enable publishing"
