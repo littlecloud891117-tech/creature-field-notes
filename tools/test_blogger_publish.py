@@ -49,7 +49,8 @@ class BloggerPublishTests(unittest.TestCase):
         self.assertIn("One &amp; two.", content)
         self.assertIn("<hr>", content)
         self.assertIn("editorial-policy.html", content)
-        self.assertTrue(content.endswith("<p>#end</p>"))
+        self.assertTrue(content.endswith("#end"))
+        self.assertNotIn("<p>#end</p>", content)
 
     def test_dry_run_skips_pending_package(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

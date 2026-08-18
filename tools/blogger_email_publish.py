@@ -39,7 +39,7 @@ def post_content(metadata: dict, english: str) -> str:
         f'<article class="field-note-story">{body}</article>'
         '<hr><p><small>This episode passed a human creative review before publication. '
         '<a href="/p/editorial-policy.html">Read the editorial policy.</a></small></p>'
-        "<p>#end</p>"
+        "#end"
     )
 
 
