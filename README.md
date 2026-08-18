@@ -20,7 +20,9 @@ python tools\check_site.py
 ./tools/setup-blogger.sh
 ```
 
-精靈會建立 Blogger OAuth 授權。OAuth client 與 token 只存入 `.secrets/`。
+精靈會設定 Blogger 的 email 發文功能與 Gmail App Password。
+
+本流程不使用 Google Cloud 或 OAuth。發文信箱與 App Password 只存入已忽略的 `.env`。
 
 ## 發佈一回
 
@@ -31,3 +33,5 @@ C:\Users\LittleCloud\.nanobot\venv\Scripts\python.exe C:\projects\Agent\scripts\
 發佈工具同步 Blogger 與本 repo。它只接受 `approval.json` 中 `status` 為 `approved` 的回目。
 
 發佈工具也核對英文正篇的 SHA-256。未核准草稿與中文審閱副本不會進入公開位置。
+
+工具會先記錄 `sending` 狀態，再傳送 email。若傳送結果不明，工具會停止，避免自動重複發文。

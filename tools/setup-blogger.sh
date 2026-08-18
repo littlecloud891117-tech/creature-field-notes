@@ -189,9 +189,6 @@ TOTAL_STAGES=4
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 SITE_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 ENV_FILE="$SITE_ROOT/.env"
-SECRETS_DIR="$SITE_ROOT/.secrets"
-CLIENT_FILE="$SECRETS_DIR/blogger-client.json"
-TOKEN_FILE="$SECRETS_DIR/blogger-token.json"
 
 native_path() {
   if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi
@@ -229,39 +226,40 @@ else
   write_env BLOGGER_BLOG_ID "$BLOGGER_BLOG_ID"
 fi
 
-stage "Create the Blogger OAuth client"
-say "Create one Google Cloud project for this local publisher."
-open_url "https://console.cloud.google.com/projectcreate"
-step "Create a project named 'Creature Field Notes Publisher'."
-pause "Press Enter after the project is active."
-open_url "https://console.cloud.google.com/apis/library/blogger.googleapis.com"
-step "Select the new project and enable Blogger API v3."
-pause "Press Enter after the API is enabled."
-open_url "https://console.cloud.google.com/auth/branding"
-step "Configure Google Auth Platform. Use the same Google account as the support email."
-step "Set Audience to External. Add only the Blogger scope: https://www.googleapis.com/auth/blogger"
-step "Set the publishing status to In production. Testing tokens expire after seven days."
-pause "Press Enter after the app status is In production."
-open_url "https://console.cloud.google.com/auth/clients"
-step "Create an OAuth client. Select 'Desktop app' and name it 'Local Blogger Publisher'."
-step "Download the client JSON file. Google shows its secret only in this file."
-ask BLOGGER_CLIENT_DOWNLOAD "Paste the downloaded JSON file's full path:"
-mkdir -p "$SECRETS_DIR"
-python -c 'import shutil,sys; shutil.copyfile(sys.argv[1], sys.argv[2])' "$BLOGGER_CLIENT_DOWNLOAD" "$(native_path "$CLIENT_FILE")"
-write_env BLOGGER_CLIENT_SECRET_FILE "$(native_path "$CLIENT_FILE")"
-write_env BLOGGER_TOKEN_FILE "$(native_path "$TOKEN_FILE")"
-
-stage "Authorize the local publisher"
-say "The local app requests only the Blogger scope. It never receives your Google password."
-if [[ ! -x "$SITE_ROOT/.venv/Scripts/python.exe" ]]; then
-  python -m venv "$SITE_ROOT/.venv"
+stage "Enable Blogger email publishing"
+say "This method uses Blogger's official email publishing feature. It does not use Google Cloud or OAuth."
+open_url "https://www.blogger.com/blog/settings/$BLOGGER_BLOG_ID"
+step "Find the Email section. Find 'Post using email'."
+SECRET_WORD=$(python -c 'import secrets; print(secrets.token_hex(12))')
+say "Use this generated secret word: $SECRET_WORD"
+step "Enter the secret word after your Blogger username."
+step "Select 'Publish email immediately'. Save the setting."
+ask_secret BLOGGER_POST_EMAIL "Right-click to paste the full @blogger.com posting address:"
+if [[ ! "$BLOGGER_POST_EMAIL" =~ ^[^[:space:]@]+\.[^[:space:]@]+@blogger\.com$ ]]; then
+  warn "The posting address must end with @blogger.com and contain the secret word."
+  exit 1
 fi
-VENV_PYTHON="$SITE_ROOT/.venv/Scripts/python.exe"
-"$VENV_PYTHON" -m pip install --disable-pip-version-check -r "$SITE_ROOT/requirements-blogger.txt"
-step "A Google consent page will open. Select the Google account that owns the Blogger site."
-step "If Google shows an unverified-app warning, continue only if the app name and project are yours."
-step "Approve the Blogger access request. The local callback closes the authorization flow."
-"$VENV_PYTHON" "$SITE_ROOT/tools/blogger_auth.py"
+write_env BLOGGER_POST_EMAIL "$BLOGGER_POST_EMAIL"
+
+stage "Create the Gmail App Password"
+say "The App Password lets the local publisher use Gmail SMTP. It is not your Google account password."
+open_url "https://myaccount.google.com/apppasswords"
+step "Sign in with the Gmail account that owns the Blogger site."
+step "If Google requests 2-Step Verification, enable it before you continue."
+step "Create an App Password named 'Creature Field Notes Publisher'."
+ask BLOGGER_SMTP_USER "Enter the full Gmail address:"
+ask_secret BLOGGER_SMTP_APP_PASSWORD "Right-click to paste the 16-character App Password:"
+if [[ ! "$BLOGGER_SMTP_USER" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]; then
+  warn "The Gmail address is not valid."
+  exit 1
+fi
+if [[ ${#BLOGGER_SMTP_APP_PASSWORD// /} -ne 16 ]]; then
+  warn "The App Password must contain 16 characters."
+  exit 1
+fi
+write_env BLOGGER_SMTP_USER "$BLOGGER_SMTP_USER"
+write_env BLOGGER_SMTP_APP_PASSWORD "${BLOGGER_SMTP_APP_PASSWORD// /}"
+python "$SITE_ROOT/tools/blogger_email_publish.py" --check-auth
 
 stage "Add policy pages and enable publishing"
 say "Blogger does not expose static-page creation in Blogger API v3, so add these pages once."
@@ -283,7 +281,7 @@ for page in about privacy editorial-policy; do
 done
 step "In Layout, add the Pages gadget and show About, Privacy, and Editorial Policy."
 pause "Press Enter after all three links appear on the public site."
-"$VENV_PYTHON" "$SITE_ROOT/tools/blogger_publish.py" --source "$(native_path "$SITE_ROOT/../Agent-serial")" --dry-run
+python "$SITE_ROOT/tools/blogger_email_publish.py" --source "$(native_path "$SITE_ROOT/../Agent-serial")" --dry-run
 confirm "Register the 15-minute approved-episode publisher now?" && \
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(native_path "$SITE_ROOT/../Agent/scripts/register-site-publisher-task.ps1")" -IntervalMinutes 15
 open_url "$BLOGGER_BLOG_URL"
