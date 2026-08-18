@@ -242,7 +242,7 @@ else
   say "Use this saved secret word: $SECRET_WORD"
   step "Enter the secret word after your Blogger username."
   step "Select 'Publish email immediately'. Save the setting."
-  ask BLOGGER_POST_USERNAME "Enter only the fixed username shown before the dot:"
+  ask BLOGGER_POST_USERNAME "Type the fixed username before the dot. Do not press Ctrl+V:"
   if [[ ! "$BLOGGER_POST_USERNAME" =~ ^[a-zA-Z0-9._-]+$ ]]; then
     warn "The username contains an unsupported character."
     exit 1
