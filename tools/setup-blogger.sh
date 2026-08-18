@@ -203,25 +203,31 @@ banner "Blogger production setup"
 
 stage "Create the public Blogger site"
 say "Create the AdSense-compatible host site and record its public identifiers."
-open_url "https://www.blogger.com/"
-step "Sign in with the Google account that will own the site and receive AdSense payments."
-step "Open the blog selector, select 'New blog', and use the title 'Creature Field Notes'."
-step "Choose an available blogspot.com address. Keep the blog public."
-step "In Theme, choose a responsive theme such as Contempo."
-step "In Settings, turn on 'Visible to search engines' and set the blog language to English."
-ask BLOGGER_BLOG_URL "Paste the full blog URL, including https://:"
-step "Select the blog. Copy the number at the end of the Blogger dashboard URL."
-ask BLOGGER_BLOG_ID "Paste the numeric Blog ID:"
-if [[ ! "$BLOGGER_BLOG_URL" =~ ^https://[a-zA-Z0-9-]+\.blogspot\.com/?$ ]]; then
-  warn "The URL is not a standard blogspot.com address. Check it before you continue."
-  confirm "Keep this URL?" || exit 1
+BLOGGER_BLOG_URL=$(_existing BLOGGER_BLOG_URL || true)
+BLOGGER_BLOG_ID=$(_existing BLOGGER_BLOG_ID || true)
+if [[ "$BLOGGER_BLOG_URL" =~ ^https://[a-zA-Z0-9-]+\.blogspot\.com/?$ && "$BLOGGER_BLOG_ID" =~ ^[0-9]+$ ]]; then
+  say "Using the saved Blogger site: $BLOGGER_BLOG_URL"
+else
+  open_url "https://www.blogger.com/"
+  step "Sign in with the Google account that will own the site and receive AdSense payments."
+  step "Open the blog selector, select 'New blog', and use the title 'Creature Field Notes'."
+  step "Choose an available blogspot.com address. Keep the blog public."
+  step "In Theme, choose a responsive theme such as Contempo."
+  step "In Settings, turn on 'Visible to search engines' and set the blog language to English."
+  ask BLOGGER_BLOG_URL "Paste the full blog URL, including https://:"
+  step "Select the blog. Copy the number at the end of the Blogger dashboard URL."
+  ask BLOGGER_BLOG_ID "Paste the numeric Blog ID:"
+  if [[ ! "$BLOGGER_BLOG_URL" =~ ^https://[a-zA-Z0-9-]+\.blogspot\.com/?$ ]]; then
+    warn "The URL is not a standard blogspot.com address."
+    exit 1
+  fi
+  if [[ ! "$BLOGGER_BLOG_ID" =~ ^[0-9]+$ ]]; then
+    warn "The Blog ID must contain digits only."
+    exit 1
+  fi
+  write_env BLOGGER_BLOG_URL "$BLOGGER_BLOG_URL"
+  write_env BLOGGER_BLOG_ID "$BLOGGER_BLOG_ID"
 fi
-if [[ ! "$BLOGGER_BLOG_ID" =~ ^[0-9]+$ ]]; then
-  warn "The Blog ID must contain digits only."
-  exit 1
-fi
-write_env BLOGGER_BLOG_URL "$BLOGGER_BLOG_URL"
-write_env BLOGGER_BLOG_ID "$BLOGGER_BLOG_ID"
 
 stage "Create the Blogger OAuth client"
 say "Create one Google Cloud project for this local publisher."
